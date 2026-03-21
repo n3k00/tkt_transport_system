@@ -1,6 +1,26 @@
 # TKT Transport System
 
-TKT Transport System is a Laravel-based transport management application for handling operational workflows such as route planning, vehicle management, trip scheduling, staff coordination, ticketing, and reporting.
+TKT Transport System is a Laravel project fixed as an admin dashboard and API backend for transport management operations.
+
+It is intended for:
+
+- Web admin panel usage by staff and admins through the browser
+- Internal management workflows such as reports, search, and operational data management
+- Future Android app synchronization through API endpoints
+
+## Project Role
+
+This Laravel project is the central backend for:
+
+- Admin system
+- Mobile app API
+- Reports and dashboard
+
+In short:
+
+- Laravel project = admin dashboard + API backend
+- Web admin panel is included
+- API backend for future Android sync is included
 
 ## Tech Stack
 
@@ -51,6 +71,37 @@ The example environment is prepared for local PostgreSQL development with these 
 - Username: `postgres`
 
 Update the password in `.env` for your local machine before sharing or deploying.
+
+## Scope
+
+Included in this project:
+
+- Admin dashboard
+- Internal web admin panel
+- API endpoints for mobile app integration
+- Reporting, searching, and management features
+
+Out of scope for now:
+
+- Public marketing website
+- Company intro website
+- Home page
+- About us page
+- Gallery page
+- Routes page for public visitors
+- Public landing page
+
+These can be built later as a separate phase if needed.
+
+## Android App Future Sync
+
+The Android app is currently planned as offline-first.
+
+In a later phase:
+
+- Local Android data will sync to the Laravel backend
+- Laravel will act as the future central server
+- Laravel will also serve as the API server for the Android app
 
 ## Initial Project Structure
 
