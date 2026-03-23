@@ -26,6 +26,10 @@ return new class extends Migration
             $table->index('changed_by');
         });
 
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement(<<<'SQL'
             ALTER TABLE parcel_status_logs
             ADD CONSTRAINT parcel_status_logs_previous_status_check

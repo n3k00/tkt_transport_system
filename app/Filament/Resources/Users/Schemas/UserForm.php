@@ -17,7 +17,10 @@ class UserForm
                     ->required(),
                 TextInput::make('phone')
                     ->tel()
-                    ->required(),
+                    ->required()
+                    ->maxLength(11)
+                    ->rule('regex:/^09\d{9}$/')
+                    ->helperText('Myanmar local format only: 09xxxxxxxxx'),
                 TextInput::make('email')
                     ->label('Email address')
                     ->email(),

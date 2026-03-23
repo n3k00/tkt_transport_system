@@ -50,6 +50,10 @@ return new class extends Migration
             $table->index('created_at');
         });
 
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement(<<<'SQL'
             ALTER TABLE parcels
             ADD CONSTRAINT parcels_status_check

@@ -17,6 +17,7 @@ class Login extends BaseLogin
             ->autocomplete('tel')
             ->autofocus()
             ->maxLength(11)
+            ->rule('regex:/^09\d{9}$/')
             ->placeholder('09xxxxxxxxx');
     }
 

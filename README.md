@@ -118,6 +118,12 @@ In a later phase:
 - Initial Laravel migrations completed
 - First commit pushed to GitHub
 
+## Dashboard Notes
+
+- Admin dashboard includes parcel overview widgets for total parcels, received today, arrived today, and claimed today
+- Admin dashboard includes a recent parcels widget for operational monitoring
+- Recent sync failures widget is planned as a later dashboard step
+
 ## Town Seed Notes
 
 Current default source town seed list:

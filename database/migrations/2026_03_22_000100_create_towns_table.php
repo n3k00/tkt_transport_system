@@ -24,6 +24,10 @@ return new class extends Migration
             $table->index(['type', 'sort_order']);
         });
 
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement(<<<'SQL'
             ALTER TABLE towns
             ADD CONSTRAINT towns_type_check

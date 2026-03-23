@@ -34,6 +34,10 @@ return new class extends Migration
             $table->index(['action', 'created_at']);
         });
 
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement(<<<'SQL'
             ALTER TABLE sync_logs
             ADD CONSTRAINT sync_logs_action_check

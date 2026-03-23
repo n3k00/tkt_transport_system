@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 
 class Parcel extends Model
@@ -50,5 +51,15 @@ class Parcel extends Model
     public function toTown(): BelongsTo
     {
         return $this->belongsTo(Town::class, 'to_town');
+    }
+
+    public function statusLogs(): HasMany
+    {
+        return $this->hasMany(ParcelStatusLog::class);
+    }
+
+    public function syncLogs(): HasMany
+    {
+        return $this->hasMany(SyncLog::class);
     }
 }
