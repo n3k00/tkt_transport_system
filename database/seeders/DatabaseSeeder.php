@@ -15,11 +15,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            SourceTownSeeder::class,
+            DestinationTownSeeder::class,
         ]);
+
+        User::query()->updateOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'phone' => '09900000000',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+                'account_code' => 'ACC00001',
+                'is_active' => true,
+            ]
+        );
     }
 }

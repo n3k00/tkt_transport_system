@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Filament\Pages\Auth;
+
+use Filament\Auth\Pages\Login as BaseLogin;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
+use Illuminate\Validation\ValidationException;
+
+class Login extends BaseLogin
+{
+    protected function getEmailFormComponent(): Component
+    {
+        return TextInput::make('phone')
+            ->label('Phone')
+            ->required()
+            ->autocomplete('tel')
+            ->autofocus()
+            ->maxLength(11)
+            ->placeholder('09xxxxxxxxx');
+    }
+
+    protected function getCredentialsFromFormData(array $data): array
+    {
+        return [
+            'phone' => $data['phone'],
+            'password' => $data['password'],
+        ];
+    }
+
+    protected function throwFailureValidationException(): never
+    {
+        throw ValidationException::withMessages([
+            'data.phone' => __('filament-panels::auth/pages/login.messages.failed'),
+        ]);
+    }
+}

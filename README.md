@@ -118,6 +118,62 @@ In a later phase:
 - Initial Laravel migrations completed
 - First commit pushed to GitHub
 
+## Town Seed Notes
+
+Current default source town seed list:
+
+- တောင်ကြီး (`TGI`)
+- လားရှိုး (`LSO`)
+- တာချီလိတ် (`TCL`)
+
+Default destination town seed is planned as a later step.
+
+Prepared destination list for later seeding:
+
+- ကွန်ဟိန်း
+- ကာလိ
+- ကျိုင်းတုံ
+- ကျေးသီး
+- ခိုလန်
+- ဆင်မောင်း
+- ဆီဆိုင်
+- ဆိုက်ခေါင်
+- တန့်ယန်း
+- တုံလော
+- တောင်ကြီး
+- တာကော်
+- တာချီလိတ်
+- နမ့်ခမ်း
+- နမ့်စန်
+- နားကောင်းမှူး
+- ပင်လုံ
+- ပြင်ဦးလွင်
+- ပင်းတယ
+- မူဆယ်
+- မန္တလေး
+- မယ်ယန်း
+- မိုင်းခတ်
+- မိုင်းကိုင်
+- မိုင်းဖြတ်
+- မိုင်းပျဉ်း
+- မိုင်းပန်
+- မိုင်းရယ်
+- မိုင်းရှူး
+- မိုင်းယန်း
+- မိုးနဲ
+- လဲချား
+- လွိုင်လင်
+- လင်းခေး
+- လားရှိုး
+- ရန်ကုန်
+- ရပ်စောက်
+- ရွှေညောင်
+- သိန်းနီ
+- သီပေါ
+- အင်တော
+- အေးသာယာ
+- ကျောက်ဂူ
+
 ## Repository
 
 [GitHub Repository](https://github.com/n3k00/tkt_transport_system)
