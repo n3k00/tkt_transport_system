@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Parcel;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class StoreParcelSyncRequest extends FormRequest
 {
@@ -20,8 +21,8 @@ class StoreParcelSyncRequest extends FormRequest
     {
         return [
             'tracking_id' => ['required', 'string', 'max:100'],
-            'from_town' => ['required', 'integer', 'exists:towns,id'],
-            'to_town' => ['required', 'integer', 'exists:towns,id', 'different:from_town'],
+            'from_town' => ['required', 'integer', Rule::exists('towns', 'id')->where('type', 'source')],
+            'to_town' => ['required', 'integer', 'different:from_town', Rule::exists('towns', 'id')->where('type', 'destination')],
             'city_code' => ['required', 'string', 'max:20'],
             'account_code' => ['required', 'string', 'max:255'],
             'sender_name' => ['required', 'string', 'max:255'],

@@ -2,9 +2,15 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Driver;
+use App\Models\Item;
+use App\Models\Merchant;
 use App\Models\Parcel;
 use App\Models\Town;
 use App\Models\User;
+use App\Models\Shipment;
+use App\Models\ShipmentItem;
+use App\Models\StockEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -18,6 +24,7 @@ class ParcelSyncApiTest extends TestCase
         $user = User::factory()->create([
             'phone' => '09922222222',
             'role' => 'staff',
+            'account_code' => 'ACC00001',
         ]);
 
         Sanctum::actingAs($user);
@@ -68,11 +75,99 @@ class ParcelSyncApiTest extends TestCase
         ]);
     }
 
+    public function test_parcel_sync_fails_when_account_code_does_not_match_authenticated_user(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '09933444444',
+            'account_code' => 'ACC99999',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        [$sourceTown, $destinationTown] = $this->createTowns();
+        $payload = $this->validPayload($sourceTown, $destinationTown, 'TRK-1002A');
+        $payload['account_code'] = 'ACC00001';
+
+        $this->postJson('/api/v1/parcels/sync', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed.')
+            ->assertJsonValidationErrors(['account_code']);
+
+        $this->assertDatabaseMissing('parcels', [
+            'tracking_id' => 'TRK-1002A',
+        ]);
+    }
+
+    public function test_parcel_sync_fails_when_city_code_does_not_match_source_town(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '09933555555',
+            'account_code' => 'ACC00001',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        [$sourceTown, $destinationTown] = $this->createTowns();
+        $payload = $this->validPayload($sourceTown, $destinationTown, 'TRK-1002B');
+        $payload['city_code'] = 'WRONG';
+
+        $this->postJson('/api/v1/parcels/sync', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed.')
+            ->assertJsonValidationErrors(['city_code']);
+
+        $this->assertDatabaseMissing('parcels', [
+            'tracking_id' => 'TRK-1002B',
+        ]);
+    }
+
+    public function test_parcel_sync_requires_from_town_to_be_source_type(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '09933666666',
+            'account_code' => 'ACC00001',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        [$sourceTown, $destinationTown] = $this->createTowns();
+        $payload = $this->validPayload($sourceTown, $destinationTown, 'TRK-1002C');
+        $payload['from_town'] = $destinationTown->id;
+
+        $this->postJson('/api/v1/parcels/sync', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed.')
+            ->assertJsonValidationErrors(['from_town']);
+    }
+
+    public function test_parcel_sync_requires_to_town_to_be_destination_type(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '09933777777',
+            'account_code' => 'ACC00001',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        [$sourceTown, $destinationTown] = $this->createTowns();
+        $payload = $this->validPayload($sourceTown, $destinationTown, 'TRK-1002D');
+        $payload['to_town'] = $sourceTown->id;
+
+        $this->postJson('/api/v1/parcels/sync', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Validation failed.')
+            ->assertJsonValidationErrors(['to_town']);
+    }
+
     public function test_duplicate_tracking_id_returns_conflict_and_failed_sync_log(): void
     {
         $user = User::factory()->create([
             'phone' => '09944444444',
-            'account_code' => 'ACC00002',
+            'account_code' => 'ACC00001',
         ]);
 
         Sanctum::actingAs($user);
@@ -123,6 +218,7 @@ class ParcelSyncApiTest extends TestCase
     {
         $user = User::factory()->create([
             'phone' => '09977777777',
+            'account_code' => 'ACC00001',
         ]);
 
         Sanctum::actingAs($user);
@@ -156,7 +252,7 @@ class ParcelSyncApiTest extends TestCase
     {
         $user = User::factory()->create([
             'phone' => '09988888888',
-            'account_code' => 'ACC00003',
+            'account_code' => 'ACC00001',
         ]);
 
         Sanctum::actingAs($user);
@@ -191,6 +287,192 @@ class ParcelSyncApiTest extends TestCase
         $this->assertSame('TRK-1005', $syncLog->request_payload['tracking_id']);
         $this->assertTrue($syncLog->response_payload['success']);
         $this->assertSame('TRK-1005', $response->json('data.tracking_id'));
+    }
+
+    public function test_shipment_item_cannot_exceed_available_stock_balance(): void
+    {
+        $merchant = Merchant::query()->create([
+            'name' => 'Merchant A',
+            'is_active' => true,
+        ]);
+
+        $item = Item::query()->create([
+            'item_name' => 'Rice Bag',
+            'unit' => 'bag',
+        ]);
+
+        $driver = Driver::query()->create([
+            'name' => 'Driver A',
+            'is_active' => true,
+        ]);
+
+        StockEntry::query()->create([
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 5,
+            'unit_price' => 1000,
+            'line_total' => 5000,
+            'received_date' => now()->toDateString(),
+        ]);
+
+        $shipment = Shipment::query()->create([
+            'shipment_no' => 'SHP-001',
+            'shipment_date' => now()->toDateString(),
+            'driver_id' => $driver->id,
+            'car_number' => '7K-1234',
+            'total_amount' => 0,
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        ShipmentItem::query()->create([
+            'shipment_id' => $shipment->id,
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 6,
+            'unit_price' => 1000,
+            'line_total' => 6000,
+        ]);
+    }
+
+    public function test_shipment_item_line_total_is_calculated_automatically(): void
+    {
+        $merchant = Merchant::query()->create([
+            'name' => 'Merchant B',
+            'is_active' => true,
+        ]);
+
+        $item = Item::query()->create([
+            'item_name' => 'Oil Can',
+            'unit' => 'can',
+        ]);
+
+        $driver = Driver::query()->create([
+            'name' => 'Driver B',
+            'default_car_number' => '9M-1111',
+            'is_active' => true,
+        ]);
+
+        StockEntry::query()->create([
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 20,
+            'unit_price' => 500,
+            'line_total' => 10000,
+            'received_date' => now()->toDateString(),
+        ]);
+
+        $shipment = Shipment::query()->create([
+            'shipment_no' => 'SHP-002',
+            'shipment_date' => now()->toDateString(),
+            'driver_id' => $driver->id,
+            'car_number' => $driver->default_car_number,
+            'total_amount' => 0,
+        ]);
+
+        $shipmentItem = ShipmentItem::query()->create([
+            'shipment_id' => $shipment->id,
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 3,
+            'unit_price' => 1500,
+            'line_total' => 0,
+        ]);
+
+        $this->assertSame('4500.00', $shipmentItem->fresh()->line_total);
+    }
+
+    public function test_shipment_total_amount_is_recalculated_when_items_are_created_updated_and_deleted(): void
+    {
+        $merchant = Merchant::query()->create([
+            'name' => 'Merchant C',
+            'is_active' => true,
+        ]);
+
+        $item = Item::query()->create([
+            'item_name' => 'Soap',
+            'unit' => 'box',
+        ]);
+
+        $driver = Driver::query()->create([
+            'name' => 'Driver C',
+            'default_car_number' => '8L-2222',
+            'is_active' => true,
+        ]);
+
+        StockEntry::query()->create([
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 50,
+            'unit_price' => 200,
+            'line_total' => 10000,
+            'received_date' => now()->toDateString(),
+        ]);
+
+        $shipment = Shipment::query()->create([
+            'shipment_no' => 'SHP-003',
+            'shipment_date' => now()->toDateString(),
+            'driver_id' => $driver->id,
+            'car_number' => $driver->default_car_number,
+            'total_amount' => 0,
+        ]);
+
+        $firstItem = ShipmentItem::query()->create([
+            'shipment_id' => $shipment->id,
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 5,
+            'unit_price' => 200,
+            'line_total' => 0,
+        ]);
+
+        $this->assertSame('1000.00', $shipment->fresh()->total_amount);
+
+        $secondItem = ShipmentItem::query()->create([
+            'shipment_id' => $shipment->id,
+            'merchant_id' => $merchant->id,
+            'item_id' => $item->id,
+            'quantity' => 4,
+            'unit_price' => 300,
+            'line_total' => 0,
+        ]);
+
+        $this->assertSame('2200.00', $shipment->fresh()->total_amount);
+
+        $secondItem->update([
+            'quantity' => 6,
+            'unit_price' => 300,
+        ]);
+
+        $this->assertSame('2800.00', $shipment->fresh()->total_amount);
+
+        $firstItem->delete();
+
+        $this->assertSame('1800.00', $shipment->fresh()->total_amount);
+    }
+
+    public function test_driver_default_car_number_can_flow_to_shipment_car_number(): void
+    {
+        $driver = Driver::query()->create([
+            'name' => 'Driver D',
+            'phone' => '09912312312',
+            'default_car_number' => '1A-9999',
+            'is_active' => true,
+        ]);
+
+        $shipment = Shipment::query()->create([
+            'shipment_no' => 'SHP-004',
+            'shipment_date' => now()->toDateString(),
+            'driver_id' => $driver->id,
+            'car_number' => $driver->default_car_number,
+            'total_amount' => 0,
+        ]);
+
+        $shipment->refresh();
+
+        $this->assertSame($driver->id, $shipment->driver_id);
+        $this->assertSame('1A-9999', $shipment->car_number);
+        $this->assertSame('1A-9999', $shipment->driver->default_car_number);
     }
 
     /**

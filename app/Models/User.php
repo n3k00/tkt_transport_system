@@ -36,6 +36,6 @@ implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->is_active && ($this->role === 'admin');
+        return $this->is_active && in_array($this->role, ['admin', 'staff'], true);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Widgets\MerchantStockBalanceWidget;
 use App\Filament\Widgets\ParcelStatsOverview;
 use App\Filament\Widgets\RecentParcelsWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -42,6 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 ParcelStatsOverview::class,
+                MerchantStockBalanceWidget::class,
                 RecentParcelsWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,

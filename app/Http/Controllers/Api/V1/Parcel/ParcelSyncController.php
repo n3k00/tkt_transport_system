@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Parcel\StoreParcelSyncRequest;
 use App\Http\Requests\Api\Parcel\UpdateParcelStatusRequest;
 use App\Models\Parcel;
 use App\Models\SyncLog;
+use App\Models\Town;
 use App\Services\ParcelStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,19 @@ class ParcelSyncController extends Controller
     {
         $payload = $request->validatedWithDefaults();
         $user = $request->user();
+        $sourceTown = Town::query()->findOrFail($payload['from_town']);
+
+        if ($user && $payload['account_code'] !== $user->account_code) {
+            return $this->validationErrorResponse([
+                'account_code' => ['The account code must match the authenticated user account code.'],
+            ]);
+        }
+
+        if ($payload['city_code'] !== $sourceTown->city_code) {
+            return $this->validationErrorResponse([
+                'city_code' => ['The city code must match the selected source town city code.'],
+            ]);
+        }
 
         $existingParcel = Parcel::query()
             ->where('tracking_id', $payload['tracking_id'])
@@ -239,5 +253,17 @@ class ParcelSyncController extends Controller
             'request_payload' => $requestPayload,
             'response_payload' => $responsePayload,
         ]);
+    }
+
+    /**
+     * @param  array<string, array<int, string>>  $errors
+     */
+    private function validationErrorResponse(array $errors): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed.',
+            'errors' => $errors,
+        ], 422);
     }
 }
